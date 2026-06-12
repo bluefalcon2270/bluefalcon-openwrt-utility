@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.1"
+VERSION="1.2"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -31,7 +31,7 @@ log_err() {
 
 spinner() {
     local pid=$1
-    local delay=0.1
+    local delay=1
     local spinstr='|/-\'
     while [ "$(ps | awk '{print $1}' | grep "^$pid$")" ]; do
         local temp=${spinstr#?}
