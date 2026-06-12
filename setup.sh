@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.1"
+VERSION="1.2"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -84,10 +84,6 @@ detect_system() {
         DEPS_CORE="unzip dnsmasq-full ipset iptables-nft kmod-nft-tproxy kmod-nft-socket"
         DEPS_STATUS="unzip ipset iptables-nft kmod-nft-tproxy kmod-nft-socket"
         OPENVPN_PKGS="openvpn-openssl luci-app-openvpn"
-        if [ -f /lib/apk/db/lock ]; then
-            log_err "apk is locked. Please resolve package manager lock."
-            exit 1
-        fi
     elif command -v opkg >/dev/null 2>&1; then
         PKG_MANAGER="opkg"
         EXT="ipk"
