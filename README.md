@@ -20,7 +20,7 @@ This utility provides a single, interactive script to install PassWall 2 and Ope
 Run this single command in your OpenWrt SSH terminal:
 
 ```sh
-wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh && sh setup.sh
+wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/openwrt-utility/main/setup.sh && sh setup.sh
 ```
 
 <br>
@@ -44,6 +44,10 @@ wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-ope
 | **ImmortalWrt** (All variants) | ✅ Full | `opkg` / `apk` depending on branch |
 
 <br><br>
+
+## 📜 Changelog
+* **v1.1:** Rebranded to BlueFalcon, added visual loading spinners for background tasks, and standardized UI colors.
+* **v1.0:** Initial public release with architecture auto-detection, hybrid background logging, and integrated OS network soft-reloads.
 
 ---
 **Watch the Tutorial:** I use this exact utility in my YouTube tutorials to ensure viewers have a standardized, error-free environment before we dive into advanced server routing and VPN setups.
