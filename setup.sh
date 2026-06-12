@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.2"
+VERSION="1.3"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -33,14 +33,16 @@ spinner() {
     local pid=$1
     local delay=1
     local spinstr='|/-\'
+    printf "\033[?25l" # Hide cursor
     while [ "$(ps | awk '{print $1}' | grep "^$pid$")" ]; do
         local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
+        printf " [%c] " "$spinstr"
         local spinstr=$temp${spinstr%"$temp"}
         sleep $delay
-        printf "\b\b\b\b\b\b"
+        printf "\b\b\b\b\b"
     done
-    printf "    \b\b\b\b"
+    printf "     \b\b\b\b\b" # Clear spinner
+    printf "\033[?25h" # Restore cursor
 }
 
 check_internet() {
@@ -51,6 +53,7 @@ check_internet() {
 }
 
 cleanup() {
+    printf "\033[?25h" # Ensure cursor is restored on exit/abort
     rm -f "$WORKDIR/passwall2.zip" "$WORKDIR/luci-app-passwall2.apk" "$WORKDIR/luci-app-passwall2.ipk"
     rm -rf "$WORKDIR/pkg"
 }
