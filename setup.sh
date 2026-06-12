@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.2"
+VERSION="1.3"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -99,11 +99,14 @@ detect_system() {
         exit 1
     fi
 
-    # Detect System Architecture
+    # Detect System Architecture safely without breaking set -e
     if [ -f /etc/os-release ]; then
-        SYS_ARCH=$(grep '^OPENWRT_ARCH=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'")
+        SYS_ARCH=$(grep '^OPENWRT_ARCH=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
     fi
-    [ -z "$SYS_ARCH" ] && SYS_ARCH="UNKNOWN_ARCH"
+    
+    if [ -z "$SYS_ARCH" ]; then
+        SYS_ARCH="UNKNOWN_ARCH"
+    fi
 }
 
 load_env() {
