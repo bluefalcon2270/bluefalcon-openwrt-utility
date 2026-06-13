@@ -19,7 +19,7 @@ This utility provides a single, interactive script to install PassWall 2 and Ope
 ## 🚀 Quick Run
 Run this single command in your OpenWrt SSH terminal:
 ```sh
-wget -O setup.sh [https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh](https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh) && sh setup.sh
+wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh && sh setup.sh
 ```
 <br>
 
