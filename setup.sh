@@ -1,10 +1,9 @@
 #!/bin/sh
 
-# Exit on absolute errors, but allow menu loops to handle user choices safely
 set -e
 
 # --- Configuration ---
-VERSION="1.3"
+VERSION="1.4"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -33,7 +32,7 @@ spinner() {
     local pid=$1
     local delay=1
     local spinstr='|/-\'
-    printf "\033[?25l" # Hide cursor
+    printf "\033[?25l"
     while [ "$(ps | awk '{print $1}' | grep "^$pid$")" ]; do
         local temp=${spinstr#?}
         printf " [%c] " "$spinstr"
@@ -41,19 +40,19 @@ spinner() {
         sleep $delay
         printf "\b\b\b\b\b"
     done
-    printf "     \b\b\b\b\b" # Clear spinner
-    printf "\033[?25h" # Restore cursor
+    printf "     \b\b\b\b\b"
+    printf "\033[?25h"
 }
 
 check_internet() {
     if ! ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
-        log_err "No internet connection detected. Please check your router's network settings."
+        log_err "No internet connection detected."
         return 1
     fi
 }
 
 cleanup() {
-    printf "\033[?25h" # Ensure cursor is restored on exit/abort
+    printf "\033[?25h"
     rm -f "$WORKDIR/passwall2.zip" "$WORKDIR/luci-app-passwall2.apk" "$WORKDIR/luci-app-passwall2.ipk"
     rm -rf "$WORKDIR/pkg"
 }
@@ -62,37 +61,29 @@ trap cleanup EXIT
 # --- System Initialization ---
 detect_system() {
     mkdir -p "$WORKDIR"
-    if [ ! -f "$LOG_FILE" ]; then
-        echo "=== BlueFalcon OpenWrt Utility System Log ===" > "$LOG_FILE"
-    fi
+    [ ! -f "$LOG_FILE" ] && echo "=== BlueFalcon OpenWrt Utility System Log ===" > "$LOG_FILE"
 
-    # Detect Package Manager
     if command -v apk >/dev/null 2>&1; then
         PKG_MANAGER="apk"
         EXT="apk"
         DEPS_CORE="unzip dnsmasq-full ipset iptables-nft kmod-nft-tproxy kmod-nft-socket"
-        DEPS_STATUS="unzip ipset iptables-nft kmod-nft-tproxy kmod-nft-socket"
+        DEPS_STATUS="dnsmasq-full unzip ipset iptables-nft kmod-nft-tproxy kmod-nft-socket"
         OPENVPN_PKGS="openvpn-openssl luci-app-openvpn"
     elif command -v opkg >/dev/null 2>&1; then
         PKG_MANAGER="opkg"
         EXT="ipk"
         DEPS_CORE="unzip dnsmasq-full ipset iptables kmod-nft-tproxy kmod-nft-socket"
-        DEPS_STATUS="unzip ipset iptables kmod-nft-tproxy kmod-nft-socket"
+        DEPS_STATUS="dnsmasq-full unzip ipset iptables kmod-nft-tproxy kmod-nft-socket"
         OPENVPN_PKGS="openvpn-openssl luci-app-openvpn"
     else
-        log_err "No supported package manager found (apk or opkg)."
+        log_err "No supported package manager found."
         exit 1
     fi
 
-    # Detect System Architecture
     if [ -f /etc/os-release ]; then
         SYS_ARCH=$(grep '^OPENWRT_ARCH=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'")
     fi
     [ -z "$SYS_ARCH" ] && SYS_ARCH="UNKNOWN_ARCH"
-
-    log_info "Detected package manager: $PKG_MANAGER"
-    log_info "Detected architecture: $SYS_ARCH"
-    sleep 2
 }
 
 load_env() {
@@ -110,51 +101,44 @@ EOF
 
 check_dnsmasq_full() {
     local check_cmd=""
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        check_cmd="apk info 2>/dev/null | grep -q"
-    else
-        check_cmd="opkg list-installed 2>/dev/null | grep -q"
-    fi
-
+    [ "$PKG_MANAGER" = "apk" ] && check_cmd="apk info 2>/dev/null | grep -q" || check_cmd="opkg list-installed 2>/dev/null | grep -q"
+    
     if ! eval "$check_cmd '^dnsmasq-full\b'"; then
-        log_err "dnsmasq-full is missing. Please run Option 1 (Install Core Requirements) first."
+        log_warn "Please run Option 1 (Install Core Requirements) first."
         return 1
     fi
     return 0
 }
 
 # --- Core Modules ---
-
-# [Option 1] Requirements
 install_dependencies() {
     clear
     echo -e "Install Core Requirements:"
     echo -e "--------------------------"
     check_internet || return 1
-
+    
     printf "${GREEN}[INFO]${NC} Updating system package repositories..."
     if [ "$PKG_MANAGER" = "apk" ]; then
         apk update >> "$LOG_FILE" 2>&1 & spinner $!
-        echo -e "\n${GREEN}[INFO]${NC} Removing standard dnsmasq to prevent conflicts..."
+        echo -e "\n${GREEN}[INFO]${NC} Removing standard dnsmasq..."
         apk del dnsmasq >> "$LOG_FILE" 2>&1 & spinner $!
-        echo -e "\n${GREEN}[INFO]${NC} Installing required core packages..."
+        echo -e "\n${GREEN}[INFO]${NC} Installing core packages..."
         apk add $DEPS_CORE >> "$LOG_FILE" 2>&1 & spinner $!
     else
         opkg update >> "$LOG_FILE" 2>&1 & spinner $!
-        echo -e "\n${GREEN}[INFO]${NC} Removing standard dnsmasq to prevent conflicts..."
+        echo -e "\n${GREEN}[INFO]${NC} Removing standard dnsmasq..."
         opkg remove dnsmasq >> "$LOG_FILE" 2>&1 & spinner $!
-        echo -e "\n${GREEN}[INFO]${NC} Installing required core packages..."
+        echo -e "\n${GREEN}[INFO]${NC} Installing core packages..."
         opkg install $DEPS_CORE >> "$LOG_FILE" 2>&1 & spinner $!
     fi
-    echo -e "\n\n${GREEN}[INFO] Requirements successfully installed!${NC}"
-    read -p "Press [Enter] to return to the menu..." dummy
+    echo -e "\n\n${GREEN}[INFO] Core requirements successfully installed!${NC}"
+    read -p "Press [Enter] to return..." dummy
 }
 
-# [Option 2] PassWall 2 Engine
 install_passwall2() {
-    check_dnsmasq_full || return 1
+    check_dnsmasq_full || { read -p "Press [Enter] to return..." dummy; return 1; }
     clear
-
+    
     echo -e "Install PassWall 2:"
     echo -e "- Configure Download Links"
     echo -e "--------------------------"
@@ -162,8 +146,7 @@ install_passwall2() {
     echo -e "Package Manager : ${GREEN}${PKG_MANAGER}${NC}"
     echo -e "Architecture    : ${GREEN}${SYS_ARCH}${NC}"
     echo ""
-    echo -e "Based on your system, please find these exact files on the GitHub Releases page:"
-    echo ""
+    echo -e "Based on your system, please find these exact files on the GitHub Releases page:\n"
     
     echo -e "1. GUI App Link (Look for: ${YELLOW}luci-app-passwall2*.${EXT}${NC})"
     read -p "[Current: ${APK_URL:-None} / 0 to Return]: " INPUT_APK
@@ -184,7 +167,7 @@ install_passwall2() {
 
     if [ -z "$ZIP_URL" ] || [ -z "$APK_URL" ]; then
         log_err "Download URLs are missing. Cannot proceed."
-        read -p "Press [Enter] to return to the menu..." dummy
+        read -p "Press [Enter] to return..." dummy
         return 1
     fi
 
@@ -210,7 +193,7 @@ install_passwall2() {
     if [ -z "$APK_FILES" ]; then
         echo -e "\n${RED}[ERROR] No valid package files found inside the archive!${NC}"
         cd "$WORKDIR"
-        read -p "Press [Enter] to return to the menu..." dummy
+        read -p "Press [Enter] to return..." dummy
         return 1
     fi
 
@@ -240,18 +223,16 @@ install_passwall2() {
     echo -e "\n\n${GREEN}========================================${NC}"
     echo -e "${GREEN}      PASSWALL 2 INSTALLATION COMPLETE  ${NC}"
     echo -e "${GREEN}========================================${NC}"
-    read -p "Press [Enter] to return to the menu..." dummy
+    read -p "Press [Enter] to return..." dummy
 }
 
-# [Option 3] OpenVPN Installer & Configurator
 install_openvpn() {
-    check_dnsmasq_full || return 1
+    check_dnsmasq_full || { read -p "Press [Enter] to return..." dummy; return 1; }
     check_internet || return 1
     clear
 
     echo -e "Install OpenVPN:"
     echo -e "--------------------------"
-    
     echo -e "${YELLOW}[ATTENTION: PREVENT CONNECTION LOSS]${NC}"
     echo -e "Network services will reload during this process. If your PC is connected to"
     echo -e "another network (like Wi-Fi) alongside this OpenWrt router, your SSH session"
@@ -295,32 +276,16 @@ install_openvpn() {
     echo -e "${GREEN}        OPENVPN INSTALLATION COMPLETE    ${NC}"
     echo -e "${GREEN}========================================${NC}"
     log_info "Proceed to LuCI > VPN > OpenVPN to import your .ovpn profile."
-    read -p "Press [Enter] to return to the menu..." dummy
+    read -p "Press [Enter] to return..." dummy
 }
 
-# [Option 4] Diagnostic Status
 check_status() {
     clear
-    echo -e "Installation Status:"
-    echo -e "--------------------------"
+    echo -e "Installation Status:\n--------------------------"
     local check_cmd=""
+    [ "$PKG_MANAGER" = "apk" ] && check_cmd="apk info 2>/dev/null | grep -q" || check_cmd="opkg list-installed 2>/dev/null | grep -q"
     
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        check_cmd="apk info 2>/dev/null | grep -q"
-    else
-        check_cmd="opkg list-installed 2>/dev/null | grep -q"
-    fi
-
-    # Check DNS Stack Explicitly
-    if eval "$check_cmd '^dnsmasq-full\b'"; then
-        echo -e "dnsmasq-full: [${GREEN}Installed${NC}]"
-    elif eval "$check_cmd '^dnsmasq\b'"; then
-        echo -e "dnsmasq: [${RED}Incorrect (Run Option 1)${NC}]"
-    else
-        echo -e "dnsmasq-full: [${RED}Missing${NC}]"
-    fi
-
-    # Check Core Dependencies
+    echo -e "--- Core Dependencies ---"
     for pkg in $DEPS_STATUS; do
         if eval "$check_cmd '^$pkg\b'"; then
             echo -e "$pkg: [${GREEN}Installed${NC}]"
@@ -329,9 +294,7 @@ check_status() {
         fi
     done
 
-    # Check OpenVPN
-    echo -e "\nOpenVPN Status:"
-    echo -e "--------------------------"
+    echo -e "\n--- OpenVPN Status ---"
     for pkg in $OPENVPN_PKGS; do
         if eval "$check_cmd '^$pkg\b'"; then
             echo -e "$pkg: [${GREEN}Installed${NC}]"
@@ -340,9 +303,7 @@ check_status() {
         fi
     done
 
-    # Check PassWall GUI
-    echo -e "\nPassWall Status:"
-    echo -e "--------------------------"
+    echo -e "\n--- PassWall Status ---"
     if eval "$check_cmd '^luci-app-passwall2\b'"; then
         echo -e "luci-app-passwall2: [${GREEN}Installed${NC}]"
     else
@@ -350,7 +311,7 @@ check_status() {
     fi
     
     echo ""
-    read -p "Press [Enter] to return to the menu..." dummy
+    read -p "Press [Enter] to return..." dummy
 }
 
 # --- Main Execution ---
@@ -373,8 +334,8 @@ while true; do
 
     case "$OPTION" in
         1) install_dependencies ;;
-        2) install_passwall2 || { log_err "PassWall 2 installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
-        3) install_openvpn || { log_err "OpenVPN installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
+        2) install_passwall2 ;;
+        3) install_openvpn ;;
         4) check_status ;;
         0) echo -e "\n${GREEN}[INFO] Exiting console. Goodbye!${NC}"; exit 0 ;;
         *) log_err "Invalid selection. Please input 0 to 4."; sleep 2 ;;
