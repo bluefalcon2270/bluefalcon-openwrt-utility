@@ -5,7 +5,7 @@
 **The unified, interactive deployment tool for PassWall 2 and OpenVPN.**
 
 ![OpenWrt](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
-[![Version](https://img.shields.io/badge/Version-1.3-blue?style=for-the-badge)]()
+[![Version](https://img.shields.io/badge/Version-1.4-blue?style=for-the-badge)]()
 [![Language](https://img.shields.io/badge/Written%20in-Shell-121011?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_YOUTUBE_CHANNEL_LINK_HERE)
@@ -46,6 +46,7 @@ wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/openwrt-utilit
 <br><br>
 
 ## 📜 Changelog
+* **v1.4:** Standardized diagnostic status reports and streamlined menu messaging.
 * **v1.3:** Eliminated UI flickering by hiding the terminal cursor during active spinner animations.
 * **v1.2:** Fixed integer sleep delays to ensure native BusyBox compatibility.
 * **v1.1:** Rebranded to BlueFalcon, added visual loading spinners for background tasks, and standardized UI colors.
