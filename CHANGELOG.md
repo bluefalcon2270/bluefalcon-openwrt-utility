@@ -1,3 +1,28 @@
+## [v2.0] - 2026-08-20
+### Added
+- **Major Architectural Rewrite**: The script has been modularized into separate, maintainable files (`src/core/` and `src/modules/`) following enterprise coding standards.
+- Persistent Installation: The utility now permanently installs itself onto the router memory (`/opt/bluefalcon-openwrt-utility/`).
+- Global Shortcut: Users can now simply type `bluefalcon` into their OpenWrt terminal to instantly launch the utility at any time.
+- Temporary DNS Failsafe: Added a temporary DNS injection (`1.1.1.1`) to prevent the router from losing internet connectivity when `dnsmasq` is hot-swapped for `dnsmasq-full`.
+- Auto-Updater: Added a new `5) Update Utility` menu option that automatically pulls the latest modular scripts from GitHub.
+- Storage Cleanup: Aggressively removes residual `.zip` files and `/pkg` folders after PassWall installations to preserve router flash memory.
+
+### Changed
+- Dynamic UCI Firewall Targeting: Removed hardcoded `@zone[1]` and `wan` assumptions. The OpenVPN module now dynamically queries the UCI database to intelligently detect the correct WAN firewall zone, guaranteeing compatibility across highly-customized routers.
+
+## [v1.8] - 2026-08-20
+### Changed
+- Reverted `apk` package manager back to its default output behavior by removing the forced verbose (`-v`) flags. The installation log will once again use standard animated progress updates to match the native OpenWrt terminal experience.
+
+## [v1.7] - 2026-08-20
+### Fixed
+- Fixed an issue where the script would continue running and throw cascading errors if a package installation failed. The script now strictly evaluates exit codes within the menu subroutines and immediately aborts a module if a core dependency (`apk`/`opkg`) fails to install.
+- Suppressed erroneous standard errors on missing firewall zones/configurations when OpenVPN installation is forced to skip.
+
+## [v1.6] - 2026-08-20
+### Changed
+- Forced `apk` package manager to use verbose (`-v`) output. This disables the dynamic carriage-return progress bars and forces the installer to print explicit line-by-line logs directly to the terminal.
+
 ## [v1.5] - 2026-08-20
 ### Removed
 - Entirely removed the background logging system and command execution wrappers to prioritize absolute stability. The script is now purely native, meaning `apk`, `wget`, and `unzip` commands run naturally without any interception or complex redirection.

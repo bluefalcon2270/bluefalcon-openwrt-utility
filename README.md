@@ -5,7 +5,7 @@
 **The unified, interactive deployment tool for PassWall 2 and OpenVPN.**
 
 ![OpenWrt](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
-![Version](https://img.shields.io/badge/Version-v1.5-007AFF?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v2.0-007AFF?style=flat-square)
 [![Language](https://img.shields.io/badge/Written%20in-Shell-121011?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_YOUTUBE_CHANNEL_LINK_HERE)
@@ -17,18 +17,20 @@ This utility provides a single, interactive script to install PassWall 2 and Ope
 <br>
 
 ## 🚀 Quick Run
-Run this single command in your OpenWrt SSH terminal:
+Run this single command in your OpenWrt SSH terminal to permanently install the utility:
 ```sh
 wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh && sh setup.sh
 ```
+After installation, simply type `bluefalcon` in your terminal to launch it anytime!
 <br>
 
 ## 🌟 Core Features
+* **Modular Enterprise Architecture:** Modular codebase (`src/`) that allows clean, maintainable feature upgrades and local persistence (`/opt/`).
 * **Easy All-in-One Menu:** Simple numbers guide you through the setup from start to finish without requiring any coding knowledge.
 * **No More Internet Conflicts:** Automatically stops PassWall and OpenVPN from blocking each other so your connection stays stable.
 * **Smart Link Memory:** Safely remembers your download links so you never have to type or paste them a second time.
 * **Automatic Router Matching:** Instantly recognizes your specific router version and applies the exact files it needs.
-* **Quick Health Check:** Soft-scans your system with a clean checklist showing you exactly what is working or missing.
+* **Storage Optimization:** Automatically purges installation zips and temporary IPKs to preserve precious router flash storage.
 * **Rock-Solid Execution:** Engineered purely with native POSIX shell commands for maximum stability and transparency on any OpenWrt build.
 
 <br><br>
