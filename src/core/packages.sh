@@ -32,6 +32,16 @@ detect_system() {
     if [ -z "$SYS_ARCH" ]; then
         SYS_ARCH="UNKNOWN_ARCH"
     fi
+
+    # Add backward compatibility for base ARM/Cortex architectures
+    if [ "$PKG_MANAGER" = "apk" ] && [ -f /etc/apk/arch ]; then
+        if echo "$SYS_ARCH" | grep -q "_neon"; then
+            BASE_ARCH=$(echo "$SYS_ARCH" | sed 's/_neon.*//')
+            if ! grep -q "^$BASE_ARCH$" /etc/apk/arch; then
+                echo "$BASE_ARCH" >> /etc/apk/arch
+            fi
+        fi
+    fi
 }
 
 check_dnsmasq_full() {
@@ -53,14 +63,17 @@ install_dependencies() {
     echo -e "\n--- Installing Core Requirements ---"
     check_internet || return 1
 
-    echo -e "\n${CYAN}[INFO] Updating system package repositories...${RESET}"
-    if [ "$PKG_MANAGER" = "apk" ]; then apk update || return 1; else opkg update || return 1; fi
-    
-    echo -e "\n${YELLOW}[WARN] Safeguarding DNS before removing dnsmasq...${RESET}"
-    # Failsafe DNS so the router doesn't lose internet during dnsmasq swap
+    echo -e "\n${YELLOW}[WARN] Safeguarding DNS...${RESET}\n"
     echo "nameserver 1.1.1.1" > /tmp/resolv.conf.tmp
     cat /etc/resolv.conf >> /tmp/resolv.conf.tmp 2>/dev/null || true
     mv /tmp/resolv.conf.tmp /etc/resolv.conf
+
+    echo -e "\n${CYAN}[INFO] Updating system package repositories...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        apk update || true
+    else
+        opkg update || true
+    fi
 
     echo -e "\n${CYAN}[INFO] Removing standard dnsmasq to prevent conflicts...${RESET}"
     if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi

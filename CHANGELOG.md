@@ -1,3 +1,11 @@
+## [v2.3] - 2026-08-20
+### Fixed
+- Fixed an edge-case bug where if a user's SSH session drops mid-installation immediately after `dnsmasq` is uninstalled, attempting to re-run the script would crash because `apk update` would fail to resolve repository domains. The DNS failsafe override (`1.1.1.1`) has now been moved *before* the repository update sequence to guarantee recovery.
+
+## [v2.2] - 2026-08-20
+### Fixed
+- Added a dynamic architecture resolution layer for the `apk` package manager. The script now parses the router's base architecture (e.g., stripping `_neon-vfpv4` to `arm_cortex-a7`) and dynamically injects it into `/etc/apk/arch` as a valid fallback architecture. This allows users to safely install 100% compatible generic packages when PassWall developers fail to compile sub-architecture specific releases.
+
 ## [v2.1] - 2026-08-20
 ### Fixed
 - Fixed a silent crash where strict POSIX error handling (`set -e`) caused the script to immediately exit if the architecture detection fallback logic evaluated to false. 

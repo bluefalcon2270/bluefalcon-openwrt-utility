@@ -3,7 +3,7 @@
 set -e
 
 # --- Configuration ---
-export VERSION="2.1"
+export VERSION="2.3"
 export WORKDIR="/opt/bluefalcon-openwrt-utility"
 export CONFIG_FILE="$WORKDIR/.env"
 
