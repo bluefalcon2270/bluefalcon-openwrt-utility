@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.3"
+VERSION="1.4"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -36,17 +36,18 @@ execute_step() {
     echo -e "\n${CYAN}[INFO] ${msg}...${RESET}"
     echo "[INFO] $(date) - $msg" >> "$LOG_FILE"
     
-    # Stream the log to the console to show real-time progress
-    tail -n 0 -f "$LOG_FILE" &
-    local TAIL_PID=$!
+    # Run command, save exit code to a temp file, and pipe all output to tee
+    # This shows logs on the screen exactly like a normal installation while still saving to setup.log
+    {
+        eval "$cmd" 2>&1
+        echo $? > "$WORKDIR/.step_exit"
+    } | tee -a "$LOG_FILE"
     
-    # Execute the command and capture its true exit status
-    eval "$cmd" >> "$LOG_FILE" 2>&1
-    local exit_code=$?
-    
-    # Stop streaming
-    kill $TAIL_PID 2>/dev/null
-    wait $TAIL_PID 2>/dev/null || true
+    local exit_code=0
+    if [ -f "$WORKDIR/.step_exit" ]; then
+        exit_code=$(cat "$WORKDIR/.step_exit")
+        rm -f "$WORKDIR/.step_exit"
+    fi
     
     if [ $exit_code -eq 0 ]; then
         log_info "$msg... Done."

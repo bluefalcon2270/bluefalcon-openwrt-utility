@@ -1,3 +1,7 @@
+## [v1.4] - 2026-08-20
+### Changed
+- Re-engineered the logging system to use standard synchronous POSIX pipelines (`tee`) instead of background async streams (`tail -f`). This makes the terminal output behave exactly like a native installation experience while preserving strict exit-code error handling and background logging.
+
 ## [v1.3] - 2026-08-20
 ### Changed
 - Replaced the visual spinner with real-time log streaming to the console so users can see exact package installation progress, while still safely maintaining the background log file.
