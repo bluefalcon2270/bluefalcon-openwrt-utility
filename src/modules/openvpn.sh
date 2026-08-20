@@ -12,7 +12,11 @@ install_openvpn() {
     read -p "Press [Enter] when ready to continue..." dummy
 
     echo -e "\n${CYAN}[INFO] Installing OpenVPN components...${RESET}"
-    if [ "$PKG_MANAGER" = "apk" ]; then apk add $OPENVPN_PKGS || return 1; else opkg install $OPENVPN_PKGS || return 1; fi
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        run_with_retry apk add openvpn-openssl luci-app-openvpn || return 1
+    else
+        run_with_retry opkg install openvpn-openssl luci-app-openvpn || return 1
+    fi
 
     echo -e "\n${CYAN}[INFO] Configuring Firewall for tun+ interfaces...${RESET}"
     local WAN_ZONE=$(uci show firewall | grep "name='wan'" | cut -d. -f2 | head -n 1)

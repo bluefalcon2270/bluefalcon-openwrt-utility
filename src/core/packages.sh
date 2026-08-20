@@ -1,8 +1,23 @@
 check_internet() {
+    echo -n "Checking internet connection... "
     if ! ping -c 1 -W 3 1.1.1.1 >/dev/null 2>&1; then
-        echo -e "${RED}[ERROR] No internet connection detected. Please check your router's network settings.${RESET}"
+        echo -e "${RED}FAIL${RESET}"
+        echo -e "${RED}[ERROR] Router has no internet connection.${RESET}"
         return 1
     fi
+    echo -e "${GREEN}OK${RESET}"
+}
+
+run_with_retry() {
+    local max_retries=3
+    local count=0
+    while [ $count -lt $max_retries ]; do
+        if "$@"; then return 0; fi
+        count=$((count + 1))
+        echo -e "${YELLOW}[WARN] Task failed or network dropped. Auto-retrying ($count/$max_retries)...${RESET}"
+        sleep 2
+    done
+    return 1
 }
 
 detect_system() {
@@ -70,16 +85,20 @@ install_dependencies() {
 
     echo -e "\n${CYAN}[INFO] Updating system package repositories...${RESET}"
     if [ "$PKG_MANAGER" = "apk" ]; then
-        apk update || true
+        run_with_retry apk update || true
     else
-        opkg update || true
+        run_with_retry opkg update || true
     fi
 
     echo -e "\n${CYAN}[INFO] Removing standard dnsmasq to prevent conflicts...${RESET}"
     if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi
         
     echo -e "\n${CYAN}[INFO] Installing required core packages...${RESET}"
-    if [ "$PKG_MANAGER" = "apk" ]; then apk add $DEPS_CORE || return 1; else opkg install $DEPS_CORE || true; fi
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        run_with_retry apk add libnghttp2-14 libcurl4 curl kmod-nf-conntrack-netlink libnfnetlink0 libnetfilter-conntrack3 libgmp10 libnettle8 dnsmasq-full kmod-nf-ipt kmod-ipt-core kmod-ipt-ipset libipset13 ipset kmod-nft-compat libxtables12 libiptext-nft0 libiptext0 libiptext6-0 xtables-nft iptables-nft kmod-nf-socket kmod-nft-socket kmod-nf-tproxy kmod-nft-tproxy unzip || return 1
+    else
+        run_with_retry opkg install curl kmod-nf-conntrack-netlink libnfnetlink libnetfilter-conntrack libgmp libnettle8 dnsmasq-full kmod-nf-ipt kmod-ipt-core kmod-ipt-ipset libipset ipset kmod-nft-compat libxtables libiptext-nft libiptext libiptext6 xtables-nft iptables-nft kmod-nf-socket kmod-nft-socket kmod-nf-tproxy kmod-nft-tproxy unzip || return 1
+    fi
 
     echo -e "\n${CYAN}[INFO] Restarting DNS services...${RESET}"
     /etc/init.d/dnsmasq restart 2>/dev/null || true

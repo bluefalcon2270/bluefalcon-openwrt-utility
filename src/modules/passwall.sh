@@ -54,14 +54,22 @@ EOF
     fi
 
     echo -e "\n${CYAN}[INFO] Installing local dependencies...${RESET}"
-    if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted $APK_FILES || return 1; else opkg install $APK_FILES || true; fi
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        run_with_retry apk add --allow-untrusted $APK_FILES || return 1
+    else
+        run_with_retry opkg install $IPK_FILES || return 1
+    fi
     cd "$WORKDIR"
 
     echo -e "\n${CYAN}[INFO] Downloading luci-app-passwall2...${RESET}"
     wget -O "$WORKDIR/luci-app-passwall2.${EXT}" "$APK_URL" || { read -p "Press [Enter] to return..." dummy; return 1; }
 
     echo -e "\n${CYAN}[INFO] Installing luci-app-passwall2...${RESET}"
-    if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk" || return 1; else opkg install "$WORKDIR/luci-app-passwall2.ipk" || true; fi
+    if [ "$PKG_MANAGER" = "apk" ]; then
+        run_with_retry apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk" || return 1
+    else
+        run_with_retry opkg install "$WORKDIR/luci-app-passwall2.ipk" || return 1
+    fi
 
     echo -e "\n${CYAN}[INFO] Cleaning up storage space...${RESET}"
     rm -rf "$WORKDIR/pkg" "$WORKDIR/passwall2.zip" "$WORKDIR/luci-app-passwall2."*
