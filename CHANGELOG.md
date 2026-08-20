@@ -1,3 +1,7 @@
+## [v2.1] - 2026-08-20
+### Fixed
+- Fixed a silent crash where strict POSIX error handling (`set -e`) caused the script to immediately exit if the architecture detection fallback logic evaluated to false. 
+
 ## [v2.0] - 2026-08-20
 ### Added
 - **Major Architectural Rewrite**: The script has been modularized into separate, maintainable files (`src/core/` and `src/modules/`) following enterprise coding standards.

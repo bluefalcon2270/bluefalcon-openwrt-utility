@@ -27,9 +27,11 @@ detect_system() {
     fi
 
     if [ -f /etc/os-release ]; then
-        SYS_ARCH=$(grep '^OPENWRT_ARCH=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'")
+        SYS_ARCH=$(grep '^OPENWRT_ARCH=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'") || true
     fi
-    [ -z "$SYS_ARCH" ] && SYS_ARCH="UNKNOWN_ARCH"
+    if [ -z "$SYS_ARCH" ]; then
+        SYS_ARCH="UNKNOWN_ARCH"
+    fi
 }
 
 check_dnsmasq_full() {
