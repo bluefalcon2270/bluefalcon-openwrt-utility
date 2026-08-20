@@ -1,3 +1,7 @@
+## [v1.3] - 2026-08-20
+### Changed
+- Replaced the visual spinner with real-time log streaming to the console so users can see exact package installation progress, while still safely maintaining the background log file.
+
 ## [v1.2] - 2026-08-20
 ### Fixed
 - Fixed an issue where the visual spinner would crash on minimal OpenWrt installations due to the BusyBox `sleep` command not supporting fractional seconds (`0.1`). Delay adjusted to 1 second.

@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.2"
+VERSION="1.3"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -30,26 +30,28 @@ log_err() {
     [ -d "$WORKDIR" ] && echo "[ERROR] $(date) - $1" >> "$LOG_FILE"
 }
 
-run_with_spinner() {
+execute_step() {
     local msg="$1"
     local cmd="$2"
-    eval "$cmd" >> "$LOG_FILE" 2>&1 &
-    local pid=$!
-    local delay=1
-    local spinstr='|/-\'
-    while kill -0 $pid 2>/dev/null; do
-        local temp=${spinstr#?}
-        printf "\r${CYAN}[INFO] %s... [%c]${RESET} " "$msg" "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-    done
-    wait $pid
+    echo -e "\n${CYAN}[INFO] ${msg}...${RESET}"
+    echo "[INFO] $(date) - $msg" >> "$LOG_FILE"
+    
+    # Stream the log to the console to show real-time progress
+    tail -n 0 -f "$LOG_FILE" &
+    local TAIL_PID=$!
+    
+    # Execute the command and capture its true exit status
+    eval "$cmd" >> "$LOG_FILE" 2>&1
     local exit_code=$?
-    printf "\r\033[K"
+    
+    # Stop streaming
+    kill $TAIL_PID 2>/dev/null
+    wait $TAIL_PID 2>/dev/null || true
+    
     if [ $exit_code -eq 0 ]; then
         log_info "$msg... Done."
     else
-        log_err "$msg... Failed! (Check setup.log)"
+        log_err "$msg... Failed! (Check setup.log for full details)"
     fi
     return $exit_code
 }
@@ -149,13 +151,13 @@ install_dependencies() {
     echo -e "\n--- Installing Core Requirements ---"
     check_internet || return 1
 
-    run_with_spinner "Updating system package repositories" \
+    execute_step "Updating system package repositories" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk update; else opkg update; fi'
     
-    run_with_spinner "Removing standard dnsmasq to prevent conflicts" \
+    execute_step "Removing standard dnsmasq to prevent conflicts" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi'
         
-    run_with_spinner "Installing required core packages" \
+    execute_step "Installing required core packages" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk add $DEPS_CORE; else opkg install $DEPS_CORE || true; fi'
 
     log_info "Requirements successfully installed!"
@@ -198,10 +200,10 @@ install_passwall2() {
     check_internet || return 1
     echo -e "\n--- Installing PassWall 2 ---"
     
-    run_with_spinner "Downloading PassWall packages (ZIP file)" "wget -O \"$WORKDIR/passwall2.zip\" \"$ZIP_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
+    execute_step "Downloading PassWall packages (ZIP file)" "wget -O \"$WORKDIR/passwall2.zip\" \"$ZIP_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
     
     rm -rf "$WORKDIR/pkg" && mkdir -p "$WORKDIR/pkg"
-    run_with_spinner "Extracting payload files" "unzip -o \"$WORKDIR/passwall2.zip\" -d \"$WORKDIR/pkg\""
+    execute_step "Extracting payload files" "unzip -o \"$WORKDIR/passwall2.zip\" -d \"$WORKDIR/pkg\""
     
     cd "$WORKDIR/pkg"
     local APK_FILES=$(find . -name "*.apk" -o -name "*.ipk")
@@ -212,13 +214,13 @@ install_passwall2() {
         return 1
     fi
 
-    run_with_spinner "Installing local dependencies" \
+    execute_step "Installing local dependencies" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted $APK_FILES; else opkg install $APK_FILES || true; fi'
     cd "$WORKDIR"
 
-    run_with_spinner "Downloading luci-app-passwall2" "wget -O \"$WORKDIR/luci-app-passwall2.${EXT}\" \"$APK_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
+    execute_step "Downloading luci-app-passwall2" "wget -O \"$WORKDIR/luci-app-passwall2.${EXT}\" \"$APK_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
 
-    run_with_spinner "Installing luci-app-passwall2" \
+    execute_step "Installing luci-app-passwall2" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk"; else opkg install "$WORKDIR/luci-app-passwall2.ipk" || true; fi'
 
     echo -e "\n${GREEN}========================================${RESET}"
@@ -241,7 +243,7 @@ install_openvpn() {
     echo -e "${CYAN}Recommendation: Disconnect from all other networks now.${RESET}"
     read -p "Press [Enter] when ready to continue..." dummy
 
-    run_with_spinner "Installing OpenVPN components" \
+    execute_step "Installing OpenVPN components" \
         'if [ "$PKG_MANAGER" = "apk" ]; then apk add $OPENVPN_PKGS; else opkg install $OPENVPN_PKGS; fi'
 
     log_info "Configuring Firewall for tun+ interfaces..."
@@ -267,7 +269,7 @@ install_openvpn() {
         log_info "Skipping DNS override. Using existing configuration."
     fi
 
-    run_with_spinner "Reloading Core Services (Network, Firewall, DNS)" \
+    execute_step "Reloading Core Services (Network, Firewall, DNS)" \
         '/etc/init.d/network reload && /etc/init.d/firewall reload && /etc/init.d/dnsmasq reload'
 
     log_info "Enabling and starting OpenVPN service..."
