@@ -5,7 +5,7 @@
 **The unified, interactive deployment tool for PassWall 2 and OpenVPN.**
 
 ![OpenWrt](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
-![Version](https://img.shields.io/badge/Version-v1.4-007AFF?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v1.5-007AFF?style=flat-square)
 [![Language](https://img.shields.io/badge/Written%20in-Shell-121011?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_YOUTUBE_CHANNEL_LINK_HERE)
@@ -29,7 +29,7 @@ wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-ope
 * **Smart Link Memory:** Safely remembers your download links so you never have to type or paste them a second time.
 * **Automatic Router Matching:** Instantly recognizes your specific router version and applies the exact files it needs.
 * **Quick Health Check:** Soft-scans your system with a clean checklist showing you exactly what is working or missing.
-* **Clean Screen, Hidden Errors:** Keeps your terminal looking beautiful by wiping the screen between actions and hiding messy system text inside a background log file (`/opt/bluefalcon-openwrt-utility/setup.log`).
+* **Rock-Solid Execution:** Engineered purely with native POSIX shell commands for maximum stability and transparency on any OpenWrt build.
 
 <br><br>
 

@@ -4,10 +4,9 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.4"
+VERSION="1.5"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
-LOG_FILE="$WORKDIR/setup.log"
 
 # --- UI Color Codes ---
 GREEN="\033[0;32m"
@@ -17,49 +16,9 @@ CYAN="\033[0;36m"
 RESET="\033[0m"
 
 # --- Utility Functions ---
-log_info() { 
-    echo -e "${GREEN}[INFO] $1${RESET}"
-    [ -d "$WORKDIR" ] && echo "[INFO] $(date) - $1" >> "$LOG_FILE"
-}
-log_warn() { 
-    echo -e "${YELLOW}[WARN] $1${RESET}"
-    [ -d "$WORKDIR" ] && echo "[WARN] $(date) - $1" >> "$LOG_FILE"
-}
-log_err() { 
-    echo -e "${RED}[ERROR] $1${RESET}"
-    [ -d "$WORKDIR" ] && echo "[ERROR] $(date) - $1" >> "$LOG_FILE"
-}
-
-execute_step() {
-    local msg="$1"
-    local cmd="$2"
-    echo -e "\n${CYAN}[INFO] ${msg}...${RESET}"
-    echo "[INFO] $(date) - $msg" >> "$LOG_FILE"
-    
-    # Run command, save exit code to a temp file, and pipe all output to tee
-    # This shows logs on the screen exactly like a normal installation while still saving to setup.log
-    {
-        eval "$cmd" 2>&1
-        echo $? > "$WORKDIR/.step_exit"
-    } | tee -a "$LOG_FILE"
-    
-    local exit_code=0
-    if [ -f "$WORKDIR/.step_exit" ]; then
-        exit_code=$(cat "$WORKDIR/.step_exit")
-        rm -f "$WORKDIR/.step_exit"
-    fi
-    
-    if [ $exit_code -eq 0 ]; then
-        log_info "$msg... Done."
-    else
-        log_err "$msg... Failed! (Check setup.log for full details)"
-    fi
-    return $exit_code
-}
-
 check_internet() {
     if ! ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
-        log_err "No internet connection detected. Please check your router's network settings."
+        echo -e "${RED}[ERROR] No internet connection detected. Please check your router's network settings.${RESET}"
         return 1
     fi
 }
@@ -73,9 +32,6 @@ trap cleanup EXIT
 # --- System Initialization ---
 detect_system() {
     mkdir -p "$WORKDIR"
-    if [ ! -f "$LOG_FILE" ]; then
-        echo "=== BlueFalcon OpenWrt Utility System Log ===" > "$LOG_FILE"
-    fi
 
     # Detect Package Manager
     if command -v apk >/dev/null 2>&1; then
@@ -91,7 +47,7 @@ detect_system() {
         DEPS_STATUS="unzip ipset iptables kmod-nft-tproxy kmod-nft-socket"
         OPENVPN_PKGS="openvpn-openssl luci-app-openvpn"
     else
-        log_err "No supported package manager found (apk or opkg)."
+        echo -e "${RED}[ERROR] No supported package manager found (apk or opkg).${RESET}"
         exit 1
     fi
 
@@ -101,8 +57,8 @@ detect_system() {
     fi
     [ -z "$SYS_ARCH" ] && SYS_ARCH="UNKNOWN_ARCH"
 
-    log_info "Detected package manager: $PKG_MANAGER"
-    log_info "Detected architecture: $SYS_ARCH"
+    echo -e "${GREEN}[INFO] Detected package manager: $PKG_MANAGER${RESET}"
+    echo -e "${GREEN}[INFO] Detected architecture: $SYS_ARCH${RESET}"
     sleep 2
 }
 
@@ -128,21 +84,10 @@ check_dnsmasq_full() {
     fi
 
     if ! eval "$check_cmd '^dnsmasq-full\b'"; then
-        log_err "dnsmasq-full is missing. Please run Option 1 (Install Core Requirements) first."
+        echo -e "${RED}[ERROR] dnsmasq-full is missing. Please run Option 1 (Install Core Requirements) first.${RESET}"
         return 1
     fi
     return 0
-}
-
-view_logs() {
-    echo -e "\n--- System Logs ($LOG_FILE) ---"
-    if [ -f "$LOG_FILE" ]; then
-        cat "$LOG_FILE"
-    else
-        echo -e "${YELLOW}No logs found yet.${RESET}"
-    fi
-    echo -e "-----------------------------------\n"
-    read -p "Press [Enter] to return to the menu..." dummy
 }
 
 # --- Core Modules ---
@@ -152,16 +97,16 @@ install_dependencies() {
     echo -e "\n--- Installing Core Requirements ---"
     check_internet || return 1
 
-    execute_step "Updating system package repositories" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk update; else opkg update; fi'
+    echo -e "\n${CYAN}[INFO] Updating system package repositories...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk update; else opkg update; fi
     
-    execute_step "Removing standard dnsmasq to prevent conflicts" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi'
+    echo -e "\n${CYAN}[INFO] Removing standard dnsmasq to prevent conflicts...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi
         
-    execute_step "Installing required core packages" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk add $DEPS_CORE; else opkg install $DEPS_CORE || true; fi'
+    echo -e "\n${CYAN}[INFO] Installing required core packages...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk add $DEPS_CORE; else opkg install $DEPS_CORE || true; fi
 
-    log_info "Requirements successfully installed!"
+    echo -e "\n${GREEN}[INFO] Requirements successfully installed!${RESET}"
     read -p "Press [Enter] to return to the menu..." dummy
 }
 
@@ -187,13 +132,13 @@ install_passwall2() {
     [ -n "$INPUT_ZIP" ] && ZIP_URL="$INPUT_ZIP"
     
     if [ -n "$APK_URL" ] && ! echo "$APK_URL" | grep -q "^http"; then
-        log_warn "GUI URL does not start with http/https. It may be invalid."
+        echo -e "${YELLOW}[WARN] GUI URL does not start with http/https. It may be invalid.${RESET}"
     fi
 
     save_env
 
     if [ -z "$ZIP_URL" ] || [ -z "$APK_URL" ]; then
-        log_err "Download URLs are missing. Cannot proceed."
+        echo -e "${RED}[ERROR] Download URLs are missing. Cannot proceed.${RESET}"
         read -p "Press [Enter] to return to the menu..." dummy
         return 1
     fi
@@ -201,28 +146,31 @@ install_passwall2() {
     check_internet || return 1
     echo -e "\n--- Installing PassWall 2 ---"
     
-    execute_step "Downloading PassWall packages (ZIP file)" "wget -O \"$WORKDIR/passwall2.zip\" \"$ZIP_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
+    echo -e "\n${CYAN}[INFO] Downloading PassWall packages (ZIP file)...${RESET}"
+    wget -O "$WORKDIR/passwall2.zip" "$ZIP_URL" || { read -p "Press [Enter] to return..." dummy; return 1; }
     
     rm -rf "$WORKDIR/pkg" && mkdir -p "$WORKDIR/pkg"
-    execute_step "Extracting payload files" "unzip -o \"$WORKDIR/passwall2.zip\" -d \"$WORKDIR/pkg\""
+    echo -e "\n${CYAN}[INFO] Extracting payload files...${RESET}"
+    unzip -o "$WORKDIR/passwall2.zip" -d "$WORKDIR/pkg"
     
     cd "$WORKDIR/pkg"
     local APK_FILES=$(find . -name "*.apk" -o -name "*.ipk")
     if [ -z "$APK_FILES" ]; then
-        log_err "No valid package files found inside the archive!"
+        echo -e "${RED}[ERROR] No valid package files found inside the archive!${RESET}"
         cd "$WORKDIR"
         read -p "Press [Enter] to return to the menu..." dummy
         return 1
     fi
 
-    execute_step "Installing local dependencies" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted $APK_FILES; else opkg install $APK_FILES || true; fi'
+    echo -e "\n${CYAN}[INFO] Installing local dependencies...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted $APK_FILES; else opkg install $APK_FILES || true; fi
     cd "$WORKDIR"
 
-    execute_step "Downloading luci-app-passwall2" "wget -O \"$WORKDIR/luci-app-passwall2.${EXT}\" \"$APK_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
+    echo -e "\n${CYAN}[INFO] Downloading luci-app-passwall2...${RESET}"
+    wget -O "$WORKDIR/luci-app-passwall2.${EXT}" "$APK_URL" || { read -p "Press [Enter] to return..." dummy; return 1; }
 
-    execute_step "Installing luci-app-passwall2" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk"; else opkg install "$WORKDIR/luci-app-passwall2.ipk" || true; fi'
+    echo -e "\n${CYAN}[INFO] Installing luci-app-passwall2...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk"; else opkg install "$WORKDIR/luci-app-passwall2.ipk" || true; fi
 
     echo -e "\n${GREEN}========================================${RESET}"
     echo -e "${GREEN}      PASSWALL 2 INSTALLATION COMPLETE  ${RESET}"
@@ -244,15 +192,15 @@ install_openvpn() {
     echo -e "${CYAN}Recommendation: Disconnect from all other networks now.${RESET}"
     read -p "Press [Enter] when ready to continue..." dummy
 
-    execute_step "Installing OpenVPN components" \
-        'if [ "$PKG_MANAGER" = "apk" ]; then apk add $OPENVPN_PKGS; else opkg install $OPENVPN_PKGS; fi'
+    echo -e "\n${CYAN}[INFO] Installing OpenVPN components...${RESET}"
+    if [ "$PKG_MANAGER" = "apk" ]; then apk add $OPENVPN_PKGS; else opkg install $OPENVPN_PKGS; fi
 
-    log_info "Configuring Firewall for tun+ interfaces..."
+    echo -e "\n${CYAN}[INFO] Configuring Firewall for tun+ interfaces...${RESET}"
     uci -q del_list firewall.wan.device="tun+" || true
     uci add_list firewall.wan.device="tun+"
     uci commit firewall
 
-    log_info "Configuring Secure DNS Routing..."
+    echo -e "\n${CYAN}[INFO] Configuring Secure DNS Routing...${RESET}"
     uci set network.wan.peerdns='0'
     uci commit network
 
@@ -261,26 +209,26 @@ install_openvpn() {
     echo -e "Choose 'n' if you are using AdGuard Home, Pi-hole, or custom DNS."
     read -p "Override system DNS? (y/N): " OVERRIDE_DNS
     if [ "$OVERRIDE_DNS" = "y" ] || [ "$OVERRIDE_DNS" = "Y" ]; then
-        log_info "Overriding DNS..."
+        echo -e "${GREEN}[INFO] Overriding DNS...${RESET}"
         uci -q delete dhcp.@dnsmasq[0].server || true
         uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
         uci add_list dhcp.@dnsmasq[0].server='8.8.8.8'
         uci commit dhcp
     else
-        log_info "Skipping DNS override. Using existing configuration."
+        echo -e "${GREEN}[INFO] Skipping DNS override. Using existing configuration.${RESET}"
     fi
 
-    execute_step "Reloading Core Services (Network, Firewall, DNS)" \
-        '/etc/init.d/network reload && /etc/init.d/firewall reload && /etc/init.d/dnsmasq reload'
+    echo -e "\n${CYAN}[INFO] Reloading Core Services (Network, Firewall, DNS)...${RESET}"
+    /etc/init.d/network reload && /etc/init.d/firewall reload && /etc/init.d/dnsmasq reload
 
-    log_info "Enabling and starting OpenVPN service..."
-    /etc/init.d/openvpn enable >> "$LOG_FILE" 2>&1
-    /etc/init.d/openvpn start >> "$LOG_FILE" 2>&1
+    echo -e "\n${CYAN}[INFO] Enabling and starting OpenVPN service...${RESET}"
+    /etc/init.d/openvpn enable || true
+    /etc/init.d/openvpn start || true
 
     echo -e "\n${GREEN}========================================${RESET}"
     echo -e "${GREEN}        OPENVPN INSTALLATION COMPLETE    ${RESET}"
     echo -e "${GREEN}========================================${RESET}"
-    log_info "Proceed to LuCI > VPN > OpenVPN to import your .ovpn profile."
+    echo -e "${GREEN}[INFO] Proceed to LuCI > VPN > OpenVPN to import your .ovpn profile.${RESET}"
     read -p "Press [Enter] to return to the menu..." dummy
 }
 
@@ -349,18 +297,16 @@ while true; do
     echo -e " 2) Install PassWall 2"
     echo -e " 3) Install OpenVPN"
     echo -e " 4) Installation Status"
-    echo -e " 5) View Logs"
     echo -e " 0) Exit"
     echo -e "${CYAN}========================================${RESET}"
-    read -p "Select an option [0-5]: " OPTION
+    read -p "Select an option [0-4]: " OPTION
 
     case "$OPTION" in
         1) install_dependencies ;;
-        2) install_passwall2 || { log_err "PassWall 2 installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
-        3) install_openvpn || { log_err "OpenVPN installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
+        2) install_passwall2 || { echo -e "${RED}[ERROR] PassWall 2 installation sequence aborted.${RESET}"; read -p "Press [Enter] to return..." dummy; } ;;
+        3) install_openvpn || { echo -e "${RED}[ERROR] OpenVPN installation sequence aborted.${RESET}"; read -p "Press [Enter] to return..." dummy; } ;;
         4) check_status ;;
-        5) view_logs ;;
         0) echo -e "\n${GREEN}[INFO] Exiting console. Goodbye!${RESET}"; exit 0 ;;
-        *) log_err "Invalid selection. Please input 0 to 5."; sleep 2 ;;
+        *) echo -e "${RED}[ERROR] Invalid selection. Please input 0 to 4.${RESET}"; sleep 2 ;;
     esac
 done

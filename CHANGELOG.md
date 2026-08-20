@@ -1,3 +1,8 @@
+## [v1.5] - 2026-08-20
+### Removed
+- Entirely removed the background logging system and command execution wrappers to prioritize absolute stability. The script is now purely native, meaning `apk`, `wget`, and `unzip` commands run naturally without any interception or complex redirection.
+- Removed the "View Logs" menu option since background logs are no longer generated.
+
 ## [v1.4] - 2026-08-20
 ### Changed
 - Re-engineered the logging system to use standard synchronous POSIX pipelines (`tee`) instead of background async streams (`tail -f`). This makes the terminal output behave exactly like a native installation experience while preserving strict exit-code error handling and background logging.
