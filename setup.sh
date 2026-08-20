@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.1"
+VERSION="1.2"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -35,7 +35,7 @@ run_with_spinner() {
     local cmd="$2"
     eval "$cmd" >> "$LOG_FILE" 2>&1 &
     local pid=$!
-    local delay=0.1
+    local delay=1
     local spinstr='|/-\'
     while kill -0 $pid 2>/dev/null; do
         local temp=${spinstr#?}
