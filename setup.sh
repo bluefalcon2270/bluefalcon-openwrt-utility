@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-VERSION="1.0"
+VERSION="1.1"
 WORKDIR="/opt/bluefalcon-openwrt-utility"
 CONFIG_FILE="$WORKDIR/.env"
 LOG_FILE="$WORKDIR/setup.log"
@@ -28,6 +28,30 @@ log_warn() {
 log_err() { 
     echo -e "${RED}[ERROR] $1${RESET}"
     [ -d "$WORKDIR" ] && echo "[ERROR] $(date) - $1" >> "$LOG_FILE"
+}
+
+run_with_spinner() {
+    local msg="$1"
+    local cmd="$2"
+    eval "$cmd" >> "$LOG_FILE" 2>&1 &
+    local pid=$!
+    local delay=0.1
+    local spinstr='|/-\'
+    while kill -0 $pid 2>/dev/null; do
+        local temp=${spinstr#?}
+        printf "\r${CYAN}[INFO] %s... [%c]${RESET} " "$msg" "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+    done
+    wait $pid
+    local exit_code=$?
+    printf "\r\033[K"
+    if [ $exit_code -eq 0 ]; then
+        log_info "$msg... Done."
+    else
+        log_err "$msg... Failed! (Check setup.log)"
+    fi
+    return $exit_code
 }
 
 check_internet() {
@@ -107,6 +131,17 @@ check_dnsmasq_full() {
     return 0
 }
 
+view_logs() {
+    echo -e "\n--- System Logs ($LOG_FILE) ---"
+    if [ -f "$LOG_FILE" ]; then
+        cat "$LOG_FILE"
+    else
+        echo -e "${YELLOW}No logs found yet.${RESET}"
+    fi
+    echo -e "-----------------------------------\n"
+    read -p "Press [Enter] to return to the menu..." dummy
+}
+
 # --- Core Modules ---
 
 # [Option 1] Requirements
@@ -114,20 +149,15 @@ install_dependencies() {
     echo -e "\n--- Installing Core Requirements ---"
     check_internet || return 1
 
-    log_info "Updating system package repositories..."
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        apk update >> "$LOG_FILE" 2>&1
-        log_info "Removing standard dnsmasq to prevent conflicts..."
-        apk del dnsmasq >> "$LOG_FILE" 2>&1 || true
-        log_info "Installing required core packages..."
-        apk add $DEPS_CORE >> "$LOG_FILE" 2>&1
-    else
-        opkg update >> "$LOG_FILE" 2>&1
-        log_info "Removing standard dnsmasq to prevent conflicts..."
-        opkg remove dnsmasq >> "$LOG_FILE" 2>&1 || true
-        log_info "Installing required core packages..."
-        opkg install $DEPS_CORE >> "$LOG_FILE" 2>&1 || true
-    fi
+    run_with_spinner "Updating system package repositories" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk update; else opkg update; fi'
+    
+    run_with_spinner "Removing standard dnsmasq to prevent conflicts" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk del dnsmasq || true; else opkg remove dnsmasq || true; fi'
+        
+    run_with_spinner "Installing required core packages" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk add $DEPS_CORE; else opkg install $DEPS_CORE || true; fi'
+
     log_info "Requirements successfully installed!"
     read -p "Press [Enter] to return to the menu..." dummy
 }
@@ -168,12 +198,10 @@ install_passwall2() {
     check_internet || return 1
     echo -e "\n--- Installing PassWall 2 ---"
     
-    log_info "Downloading PassWall packages (ZIP file)..."
-    wget -O "$WORKDIR/passwall2.zip" "$ZIP_URL" >> "$LOG_FILE" 2>&1 || { log_err "Failed to download ZIP file. Check setup.log"; read -p "Press [Enter] to return..." dummy; return 1; }
+    run_with_spinner "Downloading PassWall packages (ZIP file)" "wget -O \"$WORKDIR/passwall2.zip\" \"$ZIP_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
     
     rm -rf "$WORKDIR/pkg" && mkdir -p "$WORKDIR/pkg"
-    log_info "Extracting payload files..."
-    unzip -o "$WORKDIR/passwall2.zip" -d "$WORKDIR/pkg" >> "$LOG_FILE" 2>&1
+    run_with_spinner "Extracting payload files" "unzip -o \"$WORKDIR/passwall2.zip\" -d \"$WORKDIR/pkg\""
     
     cd "$WORKDIR/pkg"
     local APK_FILES=$(find . -name "*.apk" -o -name "*.ipk")
@@ -184,23 +212,14 @@ install_passwall2() {
         return 1
     fi
 
-    log_info "Installing local dependencies..."
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        apk add --allow-untrusted $APK_FILES >> "$LOG_FILE" 2>&1
-    else
-        opkg install $APK_FILES >> "$LOG_FILE" 2>&1 || true
-    fi
+    run_with_spinner "Installing local dependencies" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted $APK_FILES; else opkg install $APK_FILES || true; fi'
     cd "$WORKDIR"
 
-    log_info "Downloading luci-app-passwall2..."
-    wget -O "$WORKDIR/luci-app-passwall2.${EXT}" "$APK_URL" >> "$LOG_FILE" 2>&1 || { log_err "Failed to download GUI package. Check setup.log"; read -p "Press [Enter] to return..." dummy; return 1; }
+    run_with_spinner "Downloading luci-app-passwall2" "wget -O \"$WORKDIR/luci-app-passwall2.${EXT}\" \"$APK_URL\"" || { read -p "Press [Enter] to return..." dummy; return 1; }
 
-    log_info "Installing luci-app-passwall2..."
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk" >> "$LOG_FILE" 2>&1
-    else
-        opkg install "$WORKDIR/luci-app-passwall2.ipk" >> "$LOG_FILE" 2>&1 || true
-    fi
+    run_with_spinner "Installing luci-app-passwall2" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk add --allow-untrusted "$WORKDIR/luci-app-passwall2.apk"; else opkg install "$WORKDIR/luci-app-passwall2.ipk" || true; fi'
 
     echo -e "\n${GREEN}========================================${RESET}"
     echo -e "${GREEN}      PASSWALL 2 INSTALLATION COMPLETE  ${RESET}"
@@ -222,16 +241,10 @@ install_openvpn() {
     echo -e "${CYAN}Recommendation: Disconnect from all other networks now.${RESET}"
     read -p "Press [Enter] when ready to continue..." dummy
 
-    log_info "Installing OpenVPN components..."
-    if [ "$PKG_MANAGER" = "apk" ]; then
-        apk add $OPENVPN_PKGS >> "$LOG_FILE" 2>&1
-    else
-        opkg install $OPENVPN_PKGS >> "$LOG_FILE" 2>&1
-    fi
+    run_with_spinner "Installing OpenVPN components" \
+        'if [ "$PKG_MANAGER" = "apk" ]; then apk add $OPENVPN_PKGS; else opkg install $OPENVPN_PKGS; fi'
 
     log_info "Configuring Firewall for tun+ interfaces..."
-    uci -q rename firewall.@zone[0]="lan" || true
-    uci -q rename firewall.@zone[1]="wan" || true
     uci -q del_list firewall.wan.device="tun+" || true
     uci add_list firewall.wan.device="tun+"
     uci commit firewall
@@ -240,15 +253,22 @@ install_openvpn() {
     uci set network.wan.peerdns='0'
     uci commit network
 
-    uci -q delete dhcp.@dnsmasq[0].server || true
-    uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
-    uci add_list dhcp.@dnsmasq[0].server='8.8.8.8'
-    uci commit dhcp
+    echo -e "\n${CYAN}DNS Configuration${RESET}"
+    echo -e "Would you like to override the system DNS with secure defaults (1.1.1.1 and 8.8.8.8)?"
+    echo -e "Choose 'n' if you are using AdGuard Home, Pi-hole, or custom DNS."
+    read -p "Override system DNS? (y/N): " OVERRIDE_DNS
+    if [ "$OVERRIDE_DNS" = "y" ] || [ "$OVERRIDE_DNS" = "Y" ]; then
+        log_info "Overriding DNS..."
+        uci -q delete dhcp.@dnsmasq[0].server || true
+        uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
+        uci add_list dhcp.@dnsmasq[0].server='8.8.8.8'
+        uci commit dhcp
+    else
+        log_info "Skipping DNS override. Using existing configuration."
+    fi
 
-    log_info "Reloading Core Services (Network, Firewall, DNS)..."
-    /etc/init.d/network reload >> "$LOG_FILE" 2>&1
-    /etc/init.d/firewall reload >> "$LOG_FILE" 2>&1
-    /etc/init.d/dnsmasq reload >> "$LOG_FILE" 2>&1
+    run_with_spinner "Reloading Core Services (Network, Firewall, DNS)" \
+        '/etc/init.d/network reload && /etc/init.d/firewall reload && /etc/init.d/dnsmasq reload'
 
     log_info "Enabling and starting OpenVPN service..."
     /etc/init.d/openvpn enable >> "$LOG_FILE" 2>&1
@@ -326,16 +346,18 @@ while true; do
     echo -e " 2) Install PassWall 2"
     echo -e " 3) Install OpenVPN"
     echo -e " 4) Installation Status"
+    echo -e " 5) View Logs"
     echo -e " 0) Exit"
     echo -e "${CYAN}========================================${RESET}"
-    read -p "Select an option [0-4]: " OPTION
+    read -p "Select an option [0-5]: " OPTION
 
     case "$OPTION" in
         1) install_dependencies ;;
         2) install_passwall2 || { log_err "PassWall 2 installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
         3) install_openvpn || { log_err "OpenVPN installation sequence aborted. Check setup.log"; read -p "Press [Enter] to return..." dummy; } ;;
         4) check_status ;;
+        5) view_logs ;;
         0) echo -e "\n${GREEN}[INFO] Exiting console. Goodbye!${RESET}"; exit 0 ;;
-        *) log_err "Invalid selection. Please input 0 to 4."; sleep 2 ;;
+        *) log_err "Invalid selection. Please input 0 to 5."; sleep 2 ;;
     esac
 done

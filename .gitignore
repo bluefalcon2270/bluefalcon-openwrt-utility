@@ -1,0 +1,11 @@
+# Local configuration
+.env
+
+# Logs
+*.log
+
+# Temp folders/files
+/pkg/
+*.zip
+*.apk
+*.ipk
