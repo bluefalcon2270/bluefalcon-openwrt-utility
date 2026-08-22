@@ -1,3 +1,7 @@
+## [v2.4] - 2026-08-23
+### Changed
+- Standardized project name, README, and common files structure.
+
 ## [v2.3] - 2026-08-20
 ### Fixed
 - Fixed an edge-case bug where if a user's SSH session drops mid-installation immediately after `dnsmasq` is uninstalled, attempting to re-run the script would crash because `apk update` would fail to resolve repository domains. The DNS failsafe override (`1.1.1.1`) has now been moved *before* the repository update sequence to guarantee recovery.

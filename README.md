@@ -4,49 +4,61 @@
 
 **The unified, interactive deployment tool for PassWall 2 and OpenVPN.**
 
-![OpenWrt](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
-![Version](https://img.shields.io/badge/Version-v2.3-007AFF?style=flat-square)
-[![Language](https://img.shields.io/badge/Written%20in-Shell-121011?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+![Platform](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
+[![Version](https://img.shields.io/badge/Version-v2.4-007AFF?style=for-the-badge)](#)
+[![Language](https://img.shields.io/badge/Written%20in-Bash-3776AB?style=for-the-badge&logo=gnu-bash&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_YOUTUBE_CHANNEL_LINK_HERE)
 
-<br />
 </div>
 
-This utility provides a single, interactive script to install PassWall 2 and OpenVPN on OpenWrt without dependency conflicts. By centralizing the installation of `dnsmasq-full` and core packages as a prerequisite step, it ensures both VPN and proxy routing tools operate seamlessly. It automatically adapts to your system architecture, supporting both legacy `opkg` and modern `apk` environments.
 <br>
 
-## 🚀 Quick Run
-Run this single command in your OpenWrt SSH terminal to permanently install the utility:
-```sh
-wget -O setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh && sh setup.sh
-```
-After installation, simply type `bluefalcon` in your terminal to launch it anytime!
+## 📖 About
+A highly interactive and robust shell script utility designed for OpenWrt routers. It automates the complex installation and configuration of PassWall 2 and OpenVPN, turning your router into a powerful network proxy and VPN gateway with zero manual configuration.
+
 <br>
 
-## 🌟 Core Features
-* **Modular Enterprise Architecture:** Modular codebase (`src/`) that allows clean, maintainable feature upgrades and local persistence (`/opt/`).
-* **Easy All-in-One Menu:** Simple numbers guide you through the setup from start to finish without requiring any coding knowledge.
-* **No More Internet Conflicts:** Automatically stops PassWall and OpenVPN from blocking each other so your connection stays stable.
-* **Smart Link Memory:** Safely remembers your download links so you never have to type or paste them a second time.
-* **Automatic Router Matching:** Instantly recognizes your specific router version and applies the exact files it needs.
-* **Storage Optimization:** Automatically purges installation zips and temporary IPKs to preserve precious router flash storage.
-* **Rock-Solid Execution:** Engineered purely with native POSIX shell commands for maximum stability and transparency on any OpenWrt build.
+## 📸 Screenshot
+![Screenshot](screenshot.png)
 
-<br><br>
+<br>
 
-## ✅ Supported Systems
+## 🚀 How to Use
+1. **Connect:** SSH into your OpenWrt router.
+2. **Run:** Paste the installation command provided in the repository to download and execute `setup.sh`.
+3. **Enjoy:** Follow the interactive menu to select your desired proxy components.
 
-| Distribution Engine | Build Status | Underlying Package Manager |
-| :--- | :---: | :---: |
-| **OpenWrt** (v24.x / Newer Versions) | ✅ Full | Native `apk` ecosystem infrastructure |
-| **OpenWrt** (v23.x / Older Versions) | ✅ Full | `opkg` manager configuration |
-| **ImmortalWrt** (All variants) | ✅ Full | `opkg` / `apk` depending on branch |
+<br>
 
-<br><br>
+## ✨ Features
+- **Interactive UI:** Navigate through a clean, menu-driven interface right in your router's terminal.
+- **PassWall 2 Automation:** Automatically resolves dependencies and installs PassWall 2 without architecture conflicts.
+- **Fail-Safes:** Includes built-in DNS overrides and connection recovery mechanisms to prevent router bricking during installation.
 
-## 📜 Changelog
-* **v1.0:** Initial public release with architecture auto-detection, hybrid background logging, and integrated OS network soft-reloads.
+<br>
+
+## 💻 Supported Systems
+| Operating System | Compatibility |
+| :--- | :---: |
+| **OpenWrt** | ✅ |
+
+<br>
+
+## 📺 Video Tutorial
+*(A video tutorial is coming soon! Check back later for a link to the YouTube walkthrough.)*
+
+[![YouTube](https://img.shields.io/badge/YouTube-Subscribe-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@BlueFalcon2270)
+
+<br>
+
+## ☕ Support & Donate
+If you find this tool helpful and want to support its continued development, consider buying me a coffee or donating via crypto!
+
+- **Gram on ton:** `UQAQ1fZyX_EAcz0Q5z7sEfQxE0SCrVfycq5spWz0OQIOtrJl`
+- **Solana:** `CRrd7ABM8ZMLNDPvo6Jkq354FpqoUFcNmuN74ztCUcM1`
+- **Ethereum:** `0x1ec913bb2a65968945103da1734e987a9d1926d8`
 
 ---
-**Watch the Tutorial:** I use this exact utility in my YouTube tutorials to ensure viewers have a standardized, error-free environment before we dive into advanced server routing and VPN setups.
+<div align="center">
+<i>Created by BlueFalcon</i>
+</div>
