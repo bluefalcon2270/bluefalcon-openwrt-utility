@@ -1,3 +1,14 @@
+# Changelog
+
+All notable changes to the BlueFalcon OpenWrt Utility project will be documented in this file.
+
+## [v2.5] - 2026-08-23
+### Added
+- Inserted the `wget` quick-run installer script directly into `README.md` for fast, copy-paste OpenWrt deployment.
+
+### Fixed
+- Fixed chaotic version mismatches across the repository. Unified `setup.sh` (was v2.0), `src/main.sh` (was v2.3), and `VERSION` (was 2.4) so all correctly identify as `v2.5`.
+
 ## [v2.4] - 2026-08-23
 ### Changed
 - Standardized project name, README, and common files structure.
@@ -68,3 +79,4 @@
 ## [v1.0] - 2024-05-10
 ### Added
 - Initial public release with architecture auto-detection, hybrid background logging, and integrated OS network soft-reloads.
+
