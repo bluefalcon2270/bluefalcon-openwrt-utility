@@ -5,7 +5,7 @@
 **The unified, interactive deployment tool for PassWall 2 and OpenVPN.**
 
 ![Platform](https://img.shields.io/badge/Platform-OpenWrt-2ca5e0?style=for-the-badge&logo=openwrt)
-[![Version](https://img.shields.io/badge/Version-v2.4-007AFF?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/Version-v2.5-007AFF?style=for-the-badge)](#)
 [![Language](https://img.shields.io/badge/Written%20in-Bash-3776AB?style=for-the-badge&logo=gnu-bash&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
@@ -25,7 +25,13 @@ A highly interactive and robust shell script utility designed for OpenWrt router
 
 ## 🚀 How to Use
 1. **Connect:** SSH into your OpenWrt router.
-2. **Run:** Paste the installation command provided in the repository to download and execute `setup.sh`.
+
+2. **Run the Installer:** Paste the following command to automatically download and run the setup script:
+   
+   ```bash
+   wget -O /tmp/setup.sh https://raw.githubusercontent.com/bluefalcon2270/bluefalcon-openwrt-utility/main/setup.sh && sh /tmp/setup.sh
+   ```
+
 3. **Enjoy:** Follow the interactive menu to select your desired proxy components.
 
 <br>

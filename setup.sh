@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "========================================"
-echo "  Downloading BlueFalcon Utility v2.0   "
+echo "  Downloading BlueFalcon Utility v2.5   "
 echo "========================================"
 
 WORKDIR="/opt/bluefalcon-openwrt-utility"
